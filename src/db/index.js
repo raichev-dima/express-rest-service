@@ -1,5 +1,23 @@
 const uuid = require('uuid');
 
+const Errors = require('../common/Errors');
+
+const createErrorMessageByType = (errorType) => {
+  switch (errorType) {
+    case Errors.NOT_FOUND_ERR:
+      return (id, table) =>
+        `${Errors.NOT_FOUND_ERR}: Entity with ${id} doesn't exist in ${table}`;
+    case Errors.UNKNOWN_SERVER_ERR:
+      return () => 'Unknown server error';
+    default:
+      throw new Error(
+        `createErrorMessageFormatter: please provide an error's type`
+      );
+  }
+};
+
+const createNotFoundError = createErrorMessageByType(Errors.NOT_FOUND_ERR);
+
 const Tables = {
   USERS: 'USERS',
   BOARDS: 'BOARDS',
@@ -15,7 +33,12 @@ const db = {
 };
 
 const findById = (id, db, table) => {
-  return db[table].find((entity) => entity.id === id);
+  const entity = db[table].find((entity) => entity.id === id);
+  if (entity) {
+    return entity;
+  }
+
+  throw new Error(createNotFoundError(id, table));
 };
 
 const createEntity = (entity, db, table) => {
@@ -30,9 +53,9 @@ const deleteEntity = (id, db, table) => {
   if (entity) {
     db[table] = db[table].filter(({ id: entityId }) => entityId !== id);
     return entity;
-  } else {
-    throw new Error(`Entity with ${id} doesn't exist in ${table}`);
   }
+
+  throw new Error(createNotFoundError(id, table));
 };
 
 const updateEntity = (updatedEntity, db, table) => {
@@ -41,14 +64,16 @@ const updateEntity = (updatedEntity, db, table) => {
   if (index > -1) {
     Object.assign(db[table][index], updatedEntity);
     return db[table][index];
-  } else {
-    throw new Error(
-      `Entity with ${updatedEntity.id} doesn't exist in ${table}`
-    );
   }
+
+  throw new Error(createNotFoundError(updatedEntity.id, table));
 };
 
 const getAll = (db, table) => {
+  if (!db[table]) {
+    throw new Error(createErrorMessageByType(Errors.UNKNOWN_SERVER_ERR)());
+  }
+
   return db[table];
 };
 
