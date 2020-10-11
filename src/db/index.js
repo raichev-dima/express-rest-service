@@ -28,7 +28,7 @@ const Tables = {
 const db = {
   [Tables.USERS]: [],
   [Tables.BOARDS]: [],
-  [Tables.TASKS]: [],
+  [Tables.TASKS]: {},
   [Tables.COLUMNS]: [],
 };
 
@@ -89,8 +89,9 @@ db.findColumnById = function (id) {
   return findById(id, this, Tables.COLUMNS);
 };
 
-db.findTaskById = function (id) {
-  return findById(id, this, Tables.TASKS);
+db.findTaskById = function (boardId, id) {
+  const table = this[Tables.TASKS];
+  return findById(id, table, boardId);
 };
 
 db.createUser = function (user) {
@@ -98,15 +99,22 @@ db.createUser = function (user) {
 };
 
 db.createBoard = function (board) {
-  return createEntity(board, this, Tables.BOARDS);
+  const newBoard = createEntity(board, this, Tables.BOARDS);
+
+  this[Tables.TASKS][newBoard.id] = [];
+
+  return newBoard;
 };
 
 db.createColumn = function (column) {
   return createEntity(column, this, Tables.COLUMNS);
 };
 
-db.createTask = function (task) {
-  return createEntity(task, this, Tables.TASKS);
+db.createTask = function (boardId, task) {
+  const table = this[Tables.TASKS];
+  table[boardId] = table[boardId] || [];
+
+  return createEntity(task, table, boardId);
 };
 
 db.deleteUser = function (id) {
@@ -121,8 +129,9 @@ db.deleteColumn = function (id) {
   return deleteEntity(id, this, Tables.COLUMNS);
 };
 
-db.deleteTask = function (id) {
-  return deleteEntity(id, this, Tables.TASKS);
+db.deleteTask = function (boardId, id) {
+  const table = this[Tables.TASKS];
+  return deleteEntity(id, table, boardId);
 };
 
 db.updateUser = function (user) {
@@ -137,8 +146,9 @@ db.updateColumn = function (column) {
   return updateEntity(column, this, Tables.COLUMNS);
 };
 
-db.updateTask = function (task) {
-  return updateEntity(task, this, Tables.TASKS);
+db.updateTask = function (boardId, task) {
+  const table = this[Tables.TASKS];
+  return updateEntity(task, table, boardId);
 };
 
 db.getAllUsers = function () {
@@ -153,8 +163,10 @@ db.getAllColumns = function () {
   return getAll(this, Tables.COLUMNS);
 };
 
-db.getAllTasks = function () {
-  return getAll(this, Tables.TASKS);
+db.getAllTasks = function (boardId) {
+  const table = this[Tables.TASKS];
+  table[boardId] = table[boardId] || [];
+  return getAll(table, boardId);
 };
 
 module.exports = db;
