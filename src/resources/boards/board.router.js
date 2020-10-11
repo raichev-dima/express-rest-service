@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const Board = require('./board.model');
 const boardsService = require('./board.service');
+const tasksService = require('../tasks/task.service');
 const taskRouter = require('../tasks/task.router');
 
 async function performRequest({ sendRequest, onSuccess, onFailure }) {
@@ -65,7 +66,17 @@ router.route('/:id').delete(async (req, res) => {
   const { id } = req.params;
 
   const sendRequest = async () => {
-    return boardsService.deleteBoard(id);
+    const board = await boardsService.deleteBoard(id);
+
+    const { data: boundTasks, error } = await tasksService.getAll(id);
+
+    if (!error) {
+      await Promise.all(
+        boundTasks.map(async (task) => tasksService.deleteTask(id, task.id))
+      );
+    }
+
+    return board;
   };
 
   await performRequest({
