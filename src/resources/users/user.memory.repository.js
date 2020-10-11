@@ -1,23 +1,46 @@
 const db = require('../../db');
+const Errors = require('../../common/Errors');
+const createErrorsBoundary = require('../../common/createErrorsBoundary');
+
+function errorsStrategy(type) {
+  switch (type) {
+    case Errors.NOT_FOUND_ERR:
+      return 'User not found';
+    default:
+      return 'Unknown error';
+  }
+}
+
+const boundErrors = createErrorsBoundary(errorsStrategy);
+
+const performUserAction = async (action) => {
+  const { data, error, code } = await boundErrors(action);
+
+  if (!error) {
+    return { data, code };
+  } else {
+    return { error, code };
+  }
+};
 
 const getAll = async () => {
-  return db.getAllUsers();
+  return performUserAction(() => db.getAllUsers());
 };
 
 const getUser = async (id) => {
-  return db.findUserById(id);
+  return performUserAction(() => db.findUserById(id));
 };
 
 const createUser = async (user) => {
-  return db.createUser(user);
+  return performUserAction(() => db.createUser(user));
 };
 
 const updateUser = async (user) => {
-  return db.updateUser(user);
+  return performUserAction(() => db.updateUser(user));
 };
 
 const deleteUser = async (id) => {
-  return db.deleteUser(id);
+  return performUserAction(() => db.deleteUser(id));
 };
 
 module.exports = {

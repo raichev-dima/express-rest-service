@@ -2,45 +2,70 @@ const router = require('express').Router();
 const User = require('./user.model');
 const usersService = require('./user.service');
 
-router.route('/').get(async (req, res) => {
-  const usersData = await usersService.getAll();
-  const users = usersData.map((data) => new User(data));
+async function performRequest({ sendRequest, onSuccess, onFailure }) {
+  const { error, code, data: userData } = await sendRequest();
+  const user = new User(userData);
 
-  // map user fields to exclude secret fields like "password"
-  res.json(users.map((user) => user.toResponse()));
+  if (!error) {
+    const response = user.toResponse();
+
+    onSuccess(response);
+  } else {
+    onFailure({ code, error });
+  }
+}
+
+router.route('/').get(async (req, res) => {
+  const { error, code, data: usersData } = await usersService.getAll();
+
+  if (!error) {
+    const users = usersData.map((data) => new User(data));
+
+    res.json(users.map((user) => user.toResponse()));
+  } else {
+    res.status(code).send(error);
+  }
 });
 
 router.route('/:id').get(async (req, res) => {
   const { id } = req.params;
-  const userData = await usersService.getUser(id);
-  const user = new User(userData);
-  // map user fields to exclude secret fields like "password"
-  res.json(user.toResponse());
+
+  await performRequest({
+    sendRequest: async () => usersService.getUser(id),
+    onSuccess: res.json.bind(res),
+    onFailure: ({ code, error }) => res.status(code).send(error),
+  });
 });
 
 router.route('/').post(async (req, res) => {
   const data = req.body;
-  const userData = await usersService.createUser(data);
-  const user = new User(userData);
-  // map user fields to exclude secret fields like "password"
-  res.json(user.toResponse());
+
+  await performRequest({
+    sendRequest: async () => usersService.createUser(data),
+    onSuccess: res.json.bind(res),
+    onFailure: ({ code, error }) => res.status(code).send(error),
+  });
 });
 
 router.route('/:id').put(async (req, res) => {
   const { id } = req.params;
   const data = req.body;
-  const userData = await usersService.updateUser({ ...data, id });
-  const user = new User(userData);
-  // map user fields to exclude secret fields like "password"
-  res.json(user.toResponse());
+
+  await performRequest({
+    sendRequest: async () => usersService.updateUser({ ...data, id }),
+    onSuccess: res.json.bind(res),
+    onFailure: ({ code, error }) => res.status(code).send(error),
+  });
 });
 
 router.route('/:id').delete(async (req, res) => {
   const { id } = req.params;
-  const userData = await usersService.deleteUser(id);
-  const user = new User(userData);
-  // map user fields to exclude secret fields like "password"
-  res.json(user.toResponse());
+
+  await performRequest({
+    sendRequest: async () => usersService.deleteUser(id),
+    onSuccess: res.json.bind(res),
+    onFailure: ({ code, error }) => res.status(code).send(error),
+  });
 });
 
 module.exports = router;
