@@ -1,8 +1,6 @@
 const router = require('express').Router();
 const User = require('./user.model');
 const usersService = require('./user.service');
-const boardsService = require('../boards/board.service');
-const tasksService = require('../tasks/task.service');
 
 async function performRequest({ sendRequest, onSuccess, onFailure }) {
   const { error, code, data: userData } = await sendRequest();
@@ -33,7 +31,7 @@ router.route('/:id').get(async (req, res) => {
   const { id } = req.params;
 
   await performRequest({
-    sendRequest: async () => usersService.getUser(id),
+    sendRequest: () => usersService.getUser(id),
     onSuccess: res.json.bind(res),
     onFailure: ({ code, error }) => res.status(code).send(error),
   });
@@ -43,7 +41,7 @@ router.route('/').post(async (req, res) => {
   const data = req.body;
 
   await performRequest({
-    sendRequest: async () => usersService.createUser(data),
+    sendRequest: () => usersService.createUser(data),
     onSuccess: res.json.bind(res),
     onFailure: ({ code, error }) => res.status(code).send(error),
   });
@@ -54,7 +52,7 @@ router.route('/:id').put(async (req, res) => {
   const data = req.body;
 
   await performRequest({
-    sendRequest: async () => usersService.updateUser({ ...data, id }),
+    sendRequest: () => usersService.updateUser({ ...data, id }),
     onSuccess: res.json.bind(res),
     onFailure: ({ code, error }) => res.status(code).send(error),
   });
@@ -63,38 +61,8 @@ router.route('/:id').put(async (req, res) => {
 router.route('/:id').delete(async (req, res) => {
   const { id } = req.params;
 
-  const sendRequest = async () => {
-    const user = await usersService.deleteUser(id);
-
-    const { data: boards, error: boardsError } = await boardsService.getAll();
-
-    if (!boardsError) {
-      const tasks = await Promise.all(
-        boards.map(async (board) => tasksService.getAll(board.id))
-      ).then((results) =>
-        results.flatMap(({ data, error }) => {
-          if (!error) {
-            return data;
-          }
-
-          throw new Error('There is an error during the tasks fetch');
-        })
-      );
-
-      const boundTasks = tasks.filter(({ userId }) => userId === id);
-
-      await Promise.all(
-        boundTasks.map(async (task) =>
-          tasksService.updateTask(task.boardId, { ...task, userId: null })
-        )
-      );
-    }
-
-    return user;
-  };
-
   await performRequest({
-    sendRequest,
+    sendRequest: () => usersService.deleteUser(id),
     onSuccess: res.json.bind(res),
     onFailure: ({ code, error }) => res.status(code).send(error),
   });

@@ -33,7 +33,7 @@ router.route('/:id').get(async (req, res) => {
   const { id } = req.params;
 
   await performRequest({
-    sendRequest: async () => tasksService.getTask(boardId, id),
+    sendRequest: () => tasksService.getTask(boardId, id),
     onSuccess: res.json.bind(res),
     onFailure: ({ code, error }) => res.status(code).send(error),
   });
@@ -44,8 +44,7 @@ router.route('/').post(async (req, res) => {
   const { boardId } = req.params;
 
   await performRequest({
-    sendRequest: async () =>
-      tasksService.createTask(boardId, { ...data, boardId }),
+    sendRequest: () => tasksService.createTask(boardId, { ...data, boardId }),
     onSuccess: res.json.bind(res),
     onFailure: ({ code, error }) => res.status(code).send(error),
   });
@@ -56,7 +55,7 @@ router.route('/:id').put(async (req, res) => {
   const data = req.body;
 
   await performRequest({
-    sendRequest: async () => tasksService.updateTask(boardId, { ...data, id }),
+    sendRequest: () => tasksService.updateTask(boardId, { ...data, id }),
     onSuccess: res.json.bind(res),
     onFailure: ({ code, error }) => res.status(code).send(error),
   });
@@ -66,7 +65,7 @@ router.route('/:id').delete(async (req, res) => {
   const { id, boardId } = req.params;
 
   await performRequest({
-    sendRequest: async () => tasksService.deleteTask(boardId, id),
+    sendRequest: () => tasksService.deleteTask(boardId, id),
     onSuccess: res.json.bind(res),
     onFailure: ({ code, error }) => res.status(code).send(error),
   });
