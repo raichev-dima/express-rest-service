@@ -13,47 +13,63 @@ async function performRequest(sendRequest) {
 router.use('/:boardId/tasks', taskRouter);
 
 router.route('/').get(async (req, res, next) => {
-  const boardsData = await boardsService.getAll().catch(next);
-  const boards = boardsData.map((data) => new Board(data));
+  try {
+    const boardsData = await boardsService.getAll();
+    const boards = boardsData.map((data) => new Board(data));
 
-  return res.json(boards.map((board) => board.toResponse()));
+    return res.json(boards.map((board) => board.toResponse()));
+  } catch (e) {
+    next(e);
+  }
 });
 
 router.route('/:id').get(async (req, res, next) => {
-  const { id } = req.params;
-  const board = await performRequest(() => boardsService.getBoard(id)).catch(
-    next
-  );
+  try {
+    const { id } = req.params;
+    const board = await performRequest(() => boardsService.getBoard(id));
 
-  return res.json(board);
+    return res.json(board);
+  } catch (e) {
+    next(e);
+  }
 });
 
 router.route('/').post(async (req, res, next) => {
-  const data = req.body;
-  const board = await performRequest(() =>
-    boardsService.createBoard(data)
-  ).catch(next);
+  try {
+    const data = req.body;
+    const board = await performRequest(() => boardsService.createBoard(data));
 
-  return res.json(board);
+    return res.json(board);
+  } catch (e) {
+    next(e);
+  }
 });
 
 router.route('/:id').put(async (req, res, next) => {
-  const { id } = req.params;
-  const data = req.body;
+  try {
+    const { id } = req.params;
+    const data = req.body;
 
-  const board = await performRequest(() =>
-    boardsService.updateBoard({ ...data, id })
-  ).catch(next);
+    const board = await performRequest(() =>
+      boardsService.updateBoard({ ...data, id })
+    );
 
-  return res.json(board);
+    return res.json(board);
+  } catch (e) {
+    next(e);
+  }
 });
 
 router.route('/:id').delete(async (req, res, next) => {
-  const { id } = req.params;
+  try {
+    const { id } = req.params;
 
-  await performRequest(() => boardsService.deleteBoard(id)).catch(next);
+    await performRequest(() => boardsService.deleteBoard(id));
 
-  return res.sendStatus(204);
+    res.sendStatus(204);
+  } catch (e) {
+    next(e);
+  }
 });
 
 module.exports = router;

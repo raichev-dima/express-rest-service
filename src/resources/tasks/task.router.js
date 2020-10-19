@@ -11,51 +11,73 @@ async function performRequest(sendRequest) {
 
 router.route('/').get(async (req, res, next) => {
   const { boardId } = req.params;
-  const usersData = await tasksService.getAll(boardId).catch(next);
-  const users = usersData.map((data) => new Task(data));
+  try {
+    const usersData = await tasksService.getAll(boardId);
+    const users = usersData.map((data) => new Task(data));
 
-  return res.json(users.map((user) => user.toResponse()));
+    return res.json(users.map((user) => user.toResponse()));
+  } catch (e) {
+    next(e);
+  }
 });
 
 router.route('/:id').get(async (req, res, next) => {
-  const { boardId } = req.params;
-  const { id } = req.params;
+  try {
+    const { boardId } = req.params;
+    const { id } = req.params;
 
-  const task = await performRequest(() =>
-    tasksService.getTask(boardId, id)
-  ).catch(next);
+    const task = await performRequest(() => tasksService.getTask(boardId, id));
 
-  return res.json(task);
+    return res.json(task);
+  } catch (e) {
+    next(e);
+  }
 });
 
 router.route('/').post(async (req, res, next) => {
-  const data = req.body;
-  const { boardId } = req.params;
+  try {
+    const data = req.body;
+    const { boardId } = req.params;
 
-  const task = await performRequest(() =>
-    tasksService.createTask(boardId, { ...data, boardId })
-  ).catch(next);
+    const task = await performRequest(() =>
+      tasksService.createTask(boardId, { ...data, boardId })
+    );
 
-  return res.json(task);
+    return res.json(task);
+  } catch (e) {
+    next(e);
+  }
 });
 
 router.route('/:id').put(async (req, res, next) => {
-  const { id, boardId } = req.params;
-  const data = req.body;
+  try {
+    const { id, boardId } = req.params;
+    const data = req.body;
 
-  const task = await performRequest(() =>
-    tasksService.updateTask(boardId, { ...data, id })
-  ).catch(next);
+    const task = await performRequest(() =>
+      tasksService.updateTask(boardId, { ...data, id })
+    );
 
-  return res.json(task);
+    return res.json(task);
+  } catch (e) {
+    next(e);
+  }
 });
 
 router.route('/:id').delete(async (req, res, next) => {
-  const { id, boardId } = req.params;
+  try {
+    const { id, boardId } = req.params;
 
-  await performRequest(() => tasksService.deleteTask(boardId, id)).catch(next);
+    const task = await performRequest(() =>
+      tasksService.deleteTask(boardId, id)
+    );
 
-  return res.sendStatus(204);
+    if (task) {
+      return res.sendStatus(204);
+    }
+  } catch (e) {
+    next(e);
+  }
 });
 
 module.exports = router;
