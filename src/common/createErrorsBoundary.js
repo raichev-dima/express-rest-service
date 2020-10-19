@@ -13,6 +13,11 @@ function createErrorsBoundary(strategy) {
             StatusCodes.NOT_FOUND,
             strategy(Errors.NOT_FOUND_ERR)
           );
+        case e.message.startsWith(Errors.NOT_FOUND_BOARD_ERR):
+          throw createError(
+            StatusCodes.NOT_FOUND,
+            strategy(Errors.NOT_FOUND_BOARD_ERR)
+          );
         default:
           throw createError(
             StatusCodes.INTERNAL_SERVER_ERROR,

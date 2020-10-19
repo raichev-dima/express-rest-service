@@ -7,8 +7,6 @@ const getAll = () => usersRepo.getAll();
 const getUser = (id) => usersRepo.getUser(id);
 
 const deleteUser = async (id) => {
-  const user = await usersRepo.deleteUser(id);
-
   const boards = await boardsRepo.getAll();
 
   const tasks = await Promise.all(
@@ -23,7 +21,7 @@ const deleteUser = async (id) => {
     )
   );
 
-  return user;
+  await usersRepo.deleteUser(id);
 };
 
 const updateUser = (user) => usersRepo.updateUser(user);

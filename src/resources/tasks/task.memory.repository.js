@@ -6,6 +6,8 @@ function errorsStrategy(type) {
   switch (type) {
     case Errors.NOT_FOUND_ERR:
       return 'Task not found';
+    case Errors.NOT_FOUND_BOARD_ERR:
+      return 'Board not found';
     default:
       return 'Unknown error';
   }
