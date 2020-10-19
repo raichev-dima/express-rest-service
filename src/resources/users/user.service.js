@@ -9,27 +9,19 @@ const getUser = (id) => usersRepo.getUser(id);
 const deleteUser = async (id) => {
   const user = await usersRepo.deleteUser(id);
 
-  const { data: boards, error: boardsError } = await boardsRepo.getAll();
+  const boards = await boardsRepo.getAll();
 
-  if (!boardsError) {
-    const tasks = await Promise.all(
-      boards.map(async (board) => tasksRepo.getAll(board.id))
-    ).then((results) =>
-      results.flatMap(({ data, error }) => {
-        if (!error) {
-          return data;
-        }
-      })
-    );
+  const tasks = await Promise.all(
+    boards.map(async (board) => tasksRepo.getAll(board.id))
+  ).then((results) => results.flatMap((data) => data));
 
-    const boundTasks = tasks.filter(({ userId }) => userId === id);
+  const boundTasks = tasks.filter(({ userId }) => userId === id);
 
-    await Promise.all(
-      boundTasks.map(async (task) =>
-        tasksRepo.updateTask(task.boardId, { ...task, userId: null })
-      )
-    );
-  }
+  await Promise.all(
+    boundTasks.map(async (task) =>
+      tasksRepo.updateTask(task.boardId, { ...task, userId: null })
+    )
+  );
 
   return user;
 };

@@ -2,70 +2,52 @@ const router = require('express').Router();
 const User = require('./user.model');
 const usersService = require('./user.service');
 
-async function performRequest({ sendRequest, onSuccess, onFailure }) {
-  const { error, code, data: userData } = await sendRequest();
+async function performRequest(sendRequest) {
+  const userData = await sendRequest();
+
   const user = new User(userData);
 
-  if (!error) {
-    const response = user.toResponse();
-
-    onSuccess(response);
-  } else {
-    onFailure({ code, error });
-  }
+  return user.toResponse();
 }
 
-router.route('/').get(async (req, res) => {
-  const { error, code, data: usersData } = await usersService.getAll();
+router.route('/').get(async (req, res, next) => {
+  const usersData = await usersService.getAll().catch(next);
+  const users = usersData.map((data) => new User(data));
 
-  if (!error) {
-    const users = usersData.map((data) => new User(data));
-
-    res.json(users.map((user) => user.toResponse()));
-  } else {
-    res.status(code).send(error);
-  }
+  return res.json(users.map((user) => user.toResponse()));
 });
 
-router.route('/:id').get(async (req, res) => {
+router.route('/:id').get(async (req, res, next) => {
   const { id } = req.params;
 
-  await performRequest({
-    sendRequest: () => usersService.getUser(id),
-    onSuccess: res.json.bind(res),
-    onFailure: ({ code, error }) => res.status(code).send(error),
-  });
+  const user = await performRequest(() => usersService.getUser(id)).catch(next);
+  return res.json(user);
 });
 
-router.route('/').post(async (req, res) => {
+router.route('/').post(async (req, res, next) => {
   const data = req.body;
 
-  await performRequest({
-    sendRequest: () => usersService.createUser(data),
-    onSuccess: res.json.bind(res),
-    onFailure: ({ code, error }) => res.status(code).send(error),
-  });
+  const user = await performRequest(() => usersService.createUser(data)).catch(
+    next
+  );
+  return res.status(200).json(user);
 });
 
-router.route('/:id').put(async (req, res) => {
+router.route('/:id').put(async (req, res, next) => {
   const { id } = req.params;
   const data = req.body;
 
-  await performRequest({
-    sendRequest: () => usersService.updateUser({ ...data, id }),
-    onSuccess: res.json.bind(res),
-    onFailure: ({ code, error }) => res.status(code).send(error),
-  });
+  const user = await performRequest(() =>
+    usersService.updateUser({ ...data, id })
+  ).catch(next);
+  return res.json(user);
 });
 
-router.route('/:id').delete(async (req, res) => {
+router.route('/:id').delete(async (req, res, next) => {
   const { id } = req.params;
 
-  await performRequest({
-    sendRequest: () => usersService.deleteUser(id),
-    onSuccess: res.json.bind(res),
-    onFailure: ({ code, error }) => res.status(code).send(error),
-  });
+  await performRequest(() => usersService.deleteUser(id)).catch(next);
+  return res.sendStatus(204);
 });
 
 module.exports = router;

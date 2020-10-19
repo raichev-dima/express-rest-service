@@ -8,13 +8,11 @@ const getBoard = (id) => boardsRepo.getBoard(id);
 const deleteBoard = async (id) => {
   const board = await boardsRepo.deleteBoard(id);
 
-  const { data: boundTasks, error } = await tasksRepo.getAll(id);
+  const boundTasks = await tasksRepo.getAll(id);
 
-  if (!error) {
-    await Promise.all(
-      boundTasks.map(async (task) => tasksRepo.deleteTask(id, task.id))
-    );
-  }
+  await Promise.all(
+    boundTasks.map(async (task) => tasksRepo.deleteTask(id, task.id))
+  );
 
   return board;
 };

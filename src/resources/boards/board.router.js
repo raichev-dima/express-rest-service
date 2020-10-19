@@ -3,72 +3,57 @@ const Board = require('./board.model');
 const boardsService = require('./board.service');
 const taskRouter = require('../tasks/task.router');
 
-async function performRequest({ sendRequest, onSuccess, onFailure }) {
-  const { error, code, data: boardData } = await sendRequest();
+async function performRequest(sendRequest) {
+  const boardData = await sendRequest();
   const board = new Board(boardData);
 
-  if (!error) {
-    const response = board.toResponse();
-
-    onSuccess(response);
-  } else {
-    onFailure({ code, error });
-  }
+  return board.toResponse();
 }
 
 router.use('/:boardId/tasks', taskRouter);
 
-router.route('/').get(async (req, res) => {
-  const { error, code, data: boardsData } = await boardsService.getAll();
+router.route('/').get(async (req, res, next) => {
+  const boardsData = await boardsService.getAll().catch(next);
+  const boards = boardsData.map((data) => new Board(data));
 
-  if (!error) {
-    const boards = boardsData.map((data) => new Board(data));
-
-    res.json(boards.map((board) => board.toResponse()));
-  } else {
-    res.status(code).send(error);
-  }
+  return res.json(boards.map((board) => board.toResponse()));
 });
 
-router.route('/:id').get(async (req, res) => {
+router.route('/:id').get(async (req, res, next) => {
   const { id } = req.params;
+  const board = await performRequest(() => boardsService.getBoard(id)).catch(
+    next
+  );
 
-  await performRequest({
-    sendRequest: () => boardsService.getBoard(id),
-    onSuccess: res.json.bind(res),
-    onFailure: ({ code, error }) => res.status(code).send(error),
-  });
+  return res.json(board);
 });
 
-router.route('/').post(async (req, res) => {
+router.route('/').post(async (req, res, next) => {
   const data = req.body;
+  const board = await performRequest(() =>
+    boardsService.createBoard(data)
+  ).catch(next);
 
-  await performRequest({
-    sendRequest: () => boardsService.createBoard(data),
-    onSuccess: res.json.bind(res),
-    onFailure: ({ code, error }) => res.status(code).send(error),
-  });
+  return res.json(board);
 });
 
-router.route('/:id').put(async (req, res) => {
+router.route('/:id').put(async (req, res, next) => {
   const { id } = req.params;
   const data = req.body;
 
-  await performRequest({
-    sendRequest: () => boardsService.updateBoard({ ...data, id }),
-    onSuccess: res.json.bind(res),
-    onFailure: ({ code, error }) => res.status(code).send(error),
-  });
+  const board = await performRequest(() =>
+    boardsService.updateBoard({ ...data, id })
+  ).catch(next);
+
+  return res.json(board);
 });
 
-router.route('/:id').delete(async (req, res) => {
+router.route('/:id').delete(async (req, res, next) => {
   const { id } = req.params;
 
-  await performRequest({
-    sendRequest: () => boardsService.deleteBoard(id),
-    onSuccess: res.json.bind(res),
-    onFailure: ({ code, error }) => res.status(code).send(error),
-  });
+  await performRequest(() => boardsService.deleteBoard(id)).catch(next);
+
+  return res.sendStatus(204);
 });
 
 module.exports = router;

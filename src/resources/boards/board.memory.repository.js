@@ -14,13 +14,7 @@ function errorsStrategy(type) {
 const boundErrors = createErrorsBoundary(errorsStrategy);
 
 const performBoardAction = async (action) => {
-  const { data, error, code } = await boundErrors(action);
-
-  if (!error) {
-    return { data, code };
-  } else {
-    return { error, code };
-  }
+  return await boundErrors(action);
 };
 
 const getAll = async () => {
