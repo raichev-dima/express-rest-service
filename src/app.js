@@ -4,11 +4,14 @@ const path = require('path');
 const YAML = require('yamljs');
 const userRouter = require('./resources/users/user.router');
 const boardRouter = require('./resources/boards/board.router');
+const loggingMiddleware = require('./middleware/logging.middleware');
+const handleErrorsMiddleware = require('./middleware/handleErrors.middleware');
 
 const app = express();
 const swaggerDocument = YAML.load(path.join(__dirname, '../doc/api.yaml'));
 
 app.use(express.json());
+app.use(loggingMiddleware);
 
 app.use('/doc', swaggerUI.serve, swaggerUI.setup(swaggerDocument));
 
@@ -23,5 +26,7 @@ app.use('/', (req, res, next) => {
 app.use('/users', userRouter);
 
 app.use('/boards', boardRouter);
+
+app.use(handleErrorsMiddleware);
 
 module.exports = app;

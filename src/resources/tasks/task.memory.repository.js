@@ -6,6 +6,8 @@ function errorsStrategy(type) {
   switch (type) {
     case Errors.NOT_FOUND_ERR:
       return 'Task not found';
+    case Errors.NOT_FOUND_BOARD_ERR:
+      return 'Board not found';
     default:
       return 'Unknown error';
   }
@@ -14,13 +16,7 @@ function errorsStrategy(type) {
 const boundErrors = createErrorsBoundary(errorsStrategy);
 
 const performTaskAction = async (action) => {
-  const { data, error, code } = await boundErrors(action);
-
-  if (!error) {
-    return { data, code };
-  } else {
-    return { error, code };
-  }
+  return await boundErrors(action);
 };
 
 const getAll = async (boardId) => {

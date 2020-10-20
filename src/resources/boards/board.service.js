@@ -6,17 +6,13 @@ const getAll = () => boardsRepo.getAll();
 const getBoard = (id) => boardsRepo.getBoard(id);
 
 const deleteBoard = async (id) => {
-  const board = await boardsRepo.deleteBoard(id);
+  const boundTasks = await tasksRepo.getAll(id);
 
-  const { data: boundTasks, error } = await tasksRepo.getAll(id);
+  await Promise.all(
+    boundTasks.map(async (task) => tasksRepo.deleteTask(id, task.id))
+  );
 
-  if (!error) {
-    await Promise.all(
-      boundTasks.map(async (task) => tasksRepo.deleteTask(id, task.id))
-    );
-  }
-
-  return board;
+  await boardsRepo.deleteBoard(id);
 };
 
 const updateBoard = (board) => boardsRepo.updateBoard(board);

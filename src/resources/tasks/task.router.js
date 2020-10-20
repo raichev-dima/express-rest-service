@@ -2,73 +2,82 @@ const router = require('express').Router({ mergeParams: true });
 const Task = require('./task.model');
 const tasksService = require('./task.service');
 
-async function performRequest({ sendRequest, onSuccess, onFailure }) {
-  const { error, code, data: taskData } = await sendRequest();
+async function performRequest(sendRequest) {
+  const taskData = await sendRequest();
   const user = new Task(taskData);
 
-  if (!error) {
-    const response = user.toResponse();
-
-    onSuccess(response);
-  } else {
-    onFailure({ code, error });
-  }
+  return user.toResponse();
 }
 
-router.route('/').get(async (req, res) => {
+router.route('/').get(async (req, res, next) => {
   const { boardId } = req.params;
-  const { error, code, data: usersData } = await tasksService.getAll(boardId);
-
-  if (!error) {
+  try {
+    const usersData = await tasksService.getAll(boardId);
     const users = usersData.map((data) => new Task(data));
 
-    res.json(users.map((user) => user.toResponse()));
-  } else {
-    res.status(code).send(error);
+    return res.json(users.map((user) => user.toResponse()));
+  } catch (e) {
+    next(e);
   }
 });
 
-router.route('/:id').get(async (req, res) => {
-  const { boardId } = req.params;
-  const { id } = req.params;
+router.route('/:id').get(async (req, res, next) => {
+  try {
+    const { boardId } = req.params;
+    const { id } = req.params;
 
-  await performRequest({
-    sendRequest: () => tasksService.getTask(boardId, id),
-    onSuccess: res.json.bind(res),
-    onFailure: ({ code, error }) => res.status(code).send(error),
-  });
+    const task = await performRequest(() => tasksService.getTask(boardId, id));
+
+    return res.json(task);
+  } catch (e) {
+    next(e);
+  }
 });
 
-router.route('/').post(async (req, res) => {
-  const data = req.body;
-  const { boardId } = req.params;
+router.route('/').post(async (req, res, next) => {
+  try {
+    const data = req.body;
+    const { boardId } = req.params;
 
-  await performRequest({
-    sendRequest: () => tasksService.createTask(boardId, { ...data, boardId }),
-    onSuccess: res.json.bind(res),
-    onFailure: ({ code, error }) => res.status(code).send(error),
-  });
+    const task = await performRequest(() =>
+      tasksService.createTask(boardId, { ...data, boardId })
+    );
+
+    return res.json(task);
+  } catch (e) {
+    next(e);
+  }
 });
 
-router.route('/:id').put(async (req, res) => {
-  const { id, boardId } = req.params;
-  const data = req.body;
+router.route('/:id').put(async (req, res, next) => {
+  try {
+    const { id, boardId } = req.params;
+    const data = req.body;
 
-  await performRequest({
-    sendRequest: () => tasksService.updateTask(boardId, { ...data, id }),
-    onSuccess: res.json.bind(res),
-    onFailure: ({ code, error }) => res.status(code).send(error),
-  });
+    const task = await performRequest(() =>
+      tasksService.updateTask(boardId, { ...data, id })
+    );
+
+    return res.json(task);
+  } catch (e) {
+    next(e);
+  }
 });
 
-router.route('/:id').delete(async (req, res) => {
-  const { id, boardId } = req.params;
+router.route('/:id').delete(async (req, res, next) => {
+  try {
+    const { id, boardId } = req.params;
 
-  await performRequest({
-    sendRequest: () => tasksService.deleteTask(boardId, id),
-    onSuccess: res.json.bind(res),
-    onFailure: ({ code, error }) => res.status(code).send(error),
-  });
+    const task = await performRequest(() =>
+      tasksService.deleteTask(boardId, id)
+    );
+
+    if (task) {
+      return res.sendStatus(204);
+    }
+  } catch (e) {
+    next(e);
+  }
 });
 
 module.exports = router;

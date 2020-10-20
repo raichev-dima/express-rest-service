@@ -7,6 +7,9 @@ const createErrorMessageByType = (errorType) => {
     case Errors.NOT_FOUND_ERR:
       return (id, table) =>
         `${Errors.NOT_FOUND_ERR}: Entity with ${id} doesn't exist in ${table}`;
+    case Errors.NOT_FOUND_BOARD_ERR:
+      return (id, table) =>
+        `${Errors.NOT_FOUND_BOARD_ERR}: Board with ${id} doesn't exist in ${table}`;
     case Errors.UNKNOWN_SERVER_ERR:
       return () => 'Unknown server error';
     default:
@@ -17,6 +20,9 @@ const createErrorMessageByType = (errorType) => {
 };
 
 const createNotFoundError = createErrorMessageByType(Errors.NOT_FOUND_ERR);
+const createNotFoundBoardError = createErrorMessageByType(
+  Errors.NOT_FOUND_BOARD_ERR
+);
 
 const Tables = {
   USERS: 'USERS',
@@ -111,10 +117,16 @@ db.createColumn = function (column) {
 };
 
 db.createTask = function (boardId, task) {
-  const table = this[Tables.TASKS];
-  table[boardId] = table[boardId] || [];
+  try {
+    findById(boardId, this, Tables.BOARDS);
 
-  return createEntity(task, table, boardId);
+    const table = this[Tables.TASKS];
+    table[boardId] = table[boardId] || [];
+
+    return createEntity(task, table, boardId);
+  } catch (e) {
+    throw new Error(createNotFoundBoardError(boardId, Tables.BOARDS));
+  }
 };
 
 db.deleteUser = function (id) {
@@ -130,8 +142,15 @@ db.deleteColumn = function (id) {
 };
 
 db.deleteTask = function (boardId, id) {
-  const table = this[Tables.TASKS];
-  return deleteEntity(id, table, boardId);
+  try {
+    findById(boardId, this, Tables.BOARDS);
+
+    const table = this[Tables.TASKS];
+
+    return deleteEntity(id, table, boardId);
+  } catch (e) {
+    throw new Error(createNotFoundBoardError(boardId, Tables.BOARDS));
+  }
 };
 
 db.updateUser = function (user) {
@@ -147,8 +166,15 @@ db.updateColumn = function (column) {
 };
 
 db.updateTask = function (boardId, task) {
-  const table = this[Tables.TASKS];
-  return updateEntity(task, table, boardId);
+  try {
+    findById(boardId, this, Tables.BOARDS);
+
+    const table = this[Tables.TASKS];
+
+    return updateEntity(task, table, boardId);
+  } catch (e) {
+    throw new Error(createNotFoundBoardError(boardId, Tables.BOARDS));
+  }
 };
 
 db.getAllUsers = function () {
@@ -164,9 +190,16 @@ db.getAllColumns = function () {
 };
 
 db.getAllTasks = function (boardId) {
-  const table = this[Tables.TASKS];
-  table[boardId] = table[boardId] || [];
-  return getAll(table, boardId);
+  try {
+    findById(boardId, this, Tables.BOARDS);
+
+    const table = this[Tables.TASKS];
+    table[boardId] = table[boardId] || [];
+
+    return getAll(table, boardId);
+  } catch (e) {
+    throw new Error(createNotFoundBoardError(boardId, Tables.BOARDS));
+  }
 };
 
 module.exports = db;
