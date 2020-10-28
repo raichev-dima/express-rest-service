@@ -2,7 +2,7 @@ const morgan = require('morgan');
 const logger = require('../common/logger');
 
 morgan.token('body', (req) => JSON.stringify(req.body));
-morgan.token('params', (req) => JSON.stringify(req.params));
+morgan.token('query', (req) => JSON.stringify(req.query));
 
 module.exports = morgan(
   function (tokens, req, res) {
@@ -11,7 +11,7 @@ module.exports = morgan(
     return !url.startsWith('/doc')
       ? [
           `url: ${tokens.url(req, res)} |`,
-          `params: ${tokens.params(req)} |`,
+          `query: ${tokens.query(req)} |`,
           `body: ${tokens.body(req)}`,
         ].join(' ')
       : null;
