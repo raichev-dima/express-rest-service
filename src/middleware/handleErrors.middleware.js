@@ -1,4 +1,5 @@
 const { StatusCodes } = require('http-status-codes');
+const logger = require('../common/logger');
 
 const sendErrorDev = (err, res) => {
   res.status(err.statusCode).json({
@@ -26,4 +27,6 @@ module.exports = (err, req, res, _next) => {
   } else if (process.env.NODE_ENV === 'production') {
     sendErrorProd(err, res);
   }
+
+  logger.error('Unknown error', err);
 };
