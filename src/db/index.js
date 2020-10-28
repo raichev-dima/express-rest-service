@@ -1,4 +1,6 @@
-const uuid = require('uuid');
+const User = require('../resources/users/user.model');
+const Task = require('../resources/tasks/task.model');
+const Board = require('../resources/boards/board.model');
 
 const Errors = require('../common/Errors');
 
@@ -27,19 +29,17 @@ const createNotFoundBoardError = createErrorMessageByType(
 const Tables = {
   USERS: 'USERS',
   BOARDS: 'BOARDS',
-  COLUMNS: 'COLUMNS',
   TASKS: 'TASKS',
 };
 
-const db = {
-  [Tables.USERS]: [],
-  [Tables.BOARDS]: [],
-  [Tables.TASKS]: {},
-  [Tables.COLUMNS]: [],
+const Entity = {
+  [Tables.USERS]: User,
+  [Tables.BOARDS]: Board,
+  [Tables.TASKS]: Task,
 };
 
-const findById = (id, db, table) => {
-  const entity = db[table].find((entity) => entity.id === id);
+const findById = async (id, db, table) => {
+  const entity = await db[table].findById(id).exec();
   if (entity) {
     return entity;
   }
@@ -47,159 +47,148 @@ const findById = (id, db, table) => {
   throw new Error(createNotFoundError(id, table));
 };
 
-const createEntity = (entity, db, table) => {
-  const newEntity = { ...entity, id: uuid() };
-  db[table].push(newEntity);
-  return newEntity;
+const createEntity = async (entity, db, table) => {
+  return db[table].create(entity);
 };
 
-const deleteEntity = (id, db, table) => {
-  const entity = findById(id, db, table);
+const deleteEntity = async (id, db, table) => {
+  const entity = await db[table].findByIdAndDelete(id).exec();
 
   if (entity) {
-    db[table] = db[table].filter(({ id: entityId }) => entityId !== id);
     return entity;
   }
 
   throw new Error(createNotFoundError(id, table));
 };
 
-const updateEntity = (updatedEntity, db, table) => {
-  const index = db[table].findIndex(({ id }) => updatedEntity.id === id);
+const updateEntity = async (updatedEntity, db, table) => {
+  const entity = await db[table]
+    .findByIdAndUpdate(updatedEntity.id, updatedEntity, { new: true })
+    .exec();
 
-  if (index > -1) {
-    Object.assign(db[table][index], updatedEntity);
-    return db[table][index];
+  if (entity) {
+    return entity;
   }
 
   throw new Error(createNotFoundError(updatedEntity.id, table));
 };
 
-const getAll = (db, table) => {
+const getAll = async (db, table) => {
   if (!db[table]) {
     throw new Error(createErrorMessageByType(Errors.UNKNOWN_SERVER_ERR)());
   }
 
-  return db[table];
+  return await db[table].find({}).exec();
 };
 
-db.findUserById = function (id) {
-  return findById(id, this, Tables.USERS);
+const findUserById = function (id) {
+  return findById(id, Entity, Tables.USERS);
 };
 
-db.findBoardById = function (id) {
-  return findById(id, this, Tables.BOARDS);
+const findBoardById = function (id) {
+  return findById(id, Entity, Tables.BOARDS);
 };
 
-db.findColumnById = function (id) {
-  return findById(id, this, Tables.COLUMNS);
-};
+async function checkIfBoardExists(boardId) {
+  const board = await findById(boardId, Entity, Tables.BOARDS);
 
-db.findTaskById = function (boardId, id) {
-  const table = this[Tables.TASKS];
-  return findById(id, table, boardId);
-};
-
-db.createUser = function (user) {
-  return createEntity(user, this, Tables.USERS);
-};
-
-db.createBoard = function (board) {
-  const newBoard = createEntity(board, this, Tables.BOARDS);
-
-  this[Tables.TASKS][newBoard.id] = [];
-
-  return newBoard;
-};
-
-db.createColumn = function (column) {
-  return createEntity(column, this, Tables.COLUMNS);
-};
-
-db.createTask = function (boardId, task) {
-  try {
-    findById(boardId, this, Tables.BOARDS);
-
-    const table = this[Tables.TASKS];
-    table[boardId] = table[boardId] || [];
-
-    return createEntity(task, table, boardId);
-  } catch (e) {
+  if (!board) {
     throw new Error(createNotFoundBoardError(boardId, Tables.BOARDS));
   }
-};
 
-db.deleteUser = function (id) {
-  return deleteEntity(id, this, Tables.USERS);
-};
+  return board;
+}
 
-db.deleteBoard = function (id) {
-  return deleteEntity(id, this, Tables.BOARDS);
-};
+const findTaskById = async function (boardId, id) {
+  const entity = await Task.findOne({ _id: id, boardId });
 
-db.deleteColumn = function (id) {
-  return deleteEntity(id, this, Tables.COLUMNS);
-};
-
-db.deleteTask = function (boardId, id) {
-  try {
-    findById(boardId, this, Tables.BOARDS);
-
-    const table = this[Tables.TASKS];
-
-    return deleteEntity(id, table, boardId);
-  } catch (e) {
-    throw new Error(createNotFoundBoardError(boardId, Tables.BOARDS));
+  if (entity) {
+    return entity;
   }
+
+  throw new Error(createNotFoundError(id, Tables.TASKS));
 };
 
-db.updateUser = function (user) {
-  return updateEntity(user, this, Tables.USERS);
+const createUser = function (user) {
+  return createEntity(user, Entity, Tables.USERS);
 };
 
-db.updateBoard = function (board) {
-  return updateEntity(board, this, Tables.BOARDS);
+const createBoard = function (board) {
+  return createEntity(board, Entity, Tables.BOARDS);
 };
 
-db.updateColumn = function (column) {
-  return updateEntity(column, this, Tables.COLUMNS);
+const createTask = async function (boardId, task) {
+  await checkIfBoardExists(boardId);
+
+  const table = Tables.TASKS;
+
+  return createEntity({ ...task, boardId }, Entity, table);
 };
 
-db.updateTask = function (boardId, task) {
-  try {
-    findById(boardId, this, Tables.BOARDS);
+const deleteUser = function (id) {
+  return deleteEntity(id, Entity, Tables.USERS);
+};
 
-    const table = this[Tables.TASKS];
+const deleteBoard = function (id) {
+  return deleteEntity(id, Entity, Tables.BOARDS);
+};
 
-    return updateEntity(task, table, boardId);
-  } catch (e) {
-    throw new Error(createNotFoundBoardError(boardId, Tables.BOARDS));
+const deleteTask = async function (boardId, id) {
+  const entity = await Task.findOneAndDelete({ _id: id, boardId }).exec();
+
+  if (entity) {
+    return entity;
   }
+
+  throw new Error(createNotFoundError(id, Tables.TASKS));
 };
 
-db.getAllUsers = function () {
-  return getAll(this, Tables.USERS);
+const updateUser = function (user) {
+  return updateEntity(user, Entity, Tables.USERS);
 };
 
-db.getAllBoards = function () {
-  return getAll(this, Tables.BOARDS);
+const updateBoard = function (board) {
+  return updateEntity(board, Entity, Tables.BOARDS);
 };
 
-db.getAllColumns = function () {
-  return getAll(this, Tables.COLUMNS);
-};
+const updateTask = async function (boardId, task) {
+  const entity = await Task.findOneAndUpdate({ _id: task.id, boardId }, task, {
+    new: true,
+  }).exec();
 
-db.getAllTasks = function (boardId) {
-  try {
-    findById(boardId, this, Tables.BOARDS);
-
-    const table = this[Tables.TASKS];
-    table[boardId] = table[boardId] || [];
-
-    return getAll(table, boardId);
-  } catch (e) {
-    throw new Error(createNotFoundBoardError(boardId, Tables.BOARDS));
+  if (entity) {
+    return entity;
   }
+
+  throw new Error(createNotFoundError(task.id, Tables.TASKS));
 };
 
-module.exports = db;
+const getAllUsers = function () {
+  return getAll(Entity, Tables.USERS);
+};
+
+const getAllBoards = function () {
+  return getAll(Entity, Tables.BOARDS);
+};
+
+const getAllTasks = async function (boardId) {
+  return await Task.find({ boardId }).exec();
+};
+
+module.exports = {
+  findUserById,
+  findBoardById,
+  findTaskById,
+  createUser,
+  createBoard,
+  createTask,
+  deleteUser,
+  deleteBoard,
+  deleteTask,
+  updateUser,
+  updateBoard,
+  updateTask,
+  getAllUsers,
+  getAllBoards,
+  getAllTasks,
+};

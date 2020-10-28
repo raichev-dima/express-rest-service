@@ -17,7 +17,7 @@ const deleteUser = async (id) => {
 
   await Promise.all(
     boundTasks.map(async (task) =>
-      tasksRepo.updateTask(task.boardId, { ...task, userId: null })
+      tasksRepo.updateTask(task.boardId, { ...task.toResponse(), userId: null })
     )
   );
 
