@@ -1,6 +1,7 @@
 const User = require('../resources/users/user.model');
 const Task = require('../resources/tasks/task.model');
 const Board = require('../resources/boards/board.model');
+const crypt = require('../common/crypt');
 
 const Errors = require('../common/Errors');
 
@@ -109,8 +110,14 @@ const findTaskById = async function (boardId, id) {
   throw new Error(createNotFoundError(id, Tables.TASKS));
 };
 
-const createUser = function (user) {
-  return createEntity(user, Entity, Tables.USERS);
+const createUser = async function (user) {
+  const passwordHash = await crypt.hash(user.password);
+
+  return createEntity(
+    { ...user, password: passwordHash },
+    Entity,
+    Tables.USERS
+  );
 };
 
 const createBoard = function (board) {
@@ -143,8 +150,16 @@ const deleteTask = async function (boardId, id) {
   throw new Error(createNotFoundError(id, Tables.TASKS));
 };
 
-const updateUser = function (user) {
-  return updateEntity(user, Entity, Tables.USERS);
+const updateUser = async function (user) {
+  let updatedUser = user;
+
+  if (user.password) {
+    const passwordHash = await crypt.hash(user.password);
+
+    updatedUser = { ...user, password: passwordHash };
+  }
+
+  return updateEntity(updatedUser, Entity, Tables.USERS);
 };
 
 const updateBoard = function (board) {
@@ -175,6 +190,10 @@ const getAllTasks = async function (boardId) {
   return await Task.find({ boardId }).exec();
 };
 
+const getUserByProps = async function (user) {
+  return await User.findOne(user).exec();
+};
+
 module.exports = {
   findUserById,
   findBoardById,
@@ -191,4 +210,5 @@ module.exports = {
   getAllUsers,
   getAllBoards,
   getAllTasks,
+  getUserByProps,
 };

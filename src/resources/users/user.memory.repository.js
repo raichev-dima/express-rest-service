@@ -37,10 +37,15 @@ const deleteUser = async (id) => {
   return performUserAction(() => db.deleteUser(id));
 };
 
+const getUserByProps = async (props) => {
+  return performUserAction(() => db.getUserByProps(props));
+};
+
 module.exports = {
   getAll,
   getUser,
   createUser,
   updateUser,
   deleteUser,
+  getUserByProps,
 };

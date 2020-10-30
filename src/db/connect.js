@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const { MONGO_CONNECTION_STRING } = require('../common/config');
 
+const userService = require('../resources/users/user.service');
+
 function connect() {
   return new Promise((resolve, reject) => {
     mongoose.connect(MONGO_CONNECTION_STRING, {
@@ -19,6 +21,12 @@ function connect() {
     db.once('open', async function () {
       console.log('Database connection is established');
       await db.dropDatabase();
+
+      await userService.createUser({
+        login: 'admin',
+        name: 'admin',
+        password: 'admin',
+      });
       resolve();
     });
   });

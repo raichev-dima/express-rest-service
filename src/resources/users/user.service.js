@@ -28,10 +28,13 @@ const updateUser = (user) => usersRepo.updateUser(user);
 
 const createUser = (user) => usersRepo.createUser(user);
 
+const getUserByProps = (props) => usersRepo.getUserByProps(props);
+
 module.exports = {
   getAll,
   getUser,
   deleteUser,
   updateUser,
   createUser,
+  getUserByProps,
 };
